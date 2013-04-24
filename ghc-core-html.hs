@@ -9,6 +9,7 @@ import Control.Monad
 import Data.Maybe    (isJust)
 import Data.Monoid
 import Data.List
+import qualified Data.Foldable as F
 
 import Text.Blaze.Html5 (toHtml)
 import qualified Text.Blaze.Html5 as H
@@ -25,6 +26,7 @@ import qualified Data.Map as M
 
 import GhcCore.Parser
 import Paths_ghc_core_html
+
 
 
 
@@ -64,7 +66,7 @@ go opts (f:_) = do
                     H.a H.! HA.id "buttonToggleBody" $ "toggle bodies"
                     _ <- " - "
                     indexify table
-                mconcat $ map (atomToHtml table) xs
+                F.foldMap (atomToHtml table) xs
             exitSuccess
   where
     acc :: (Int,Int,Int) -> Atom -> (Int,Int,Int)
