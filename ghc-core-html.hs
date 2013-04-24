@@ -33,7 +33,7 @@ printRaw :: [Atom] -> IO ()
 printRaw xs = do
     mapM_ print xs
     let (nJ,nF,nO) = foldl acc (0,0,0) xs
-    putStrLn ("Parsed " ++ show nO ++ "/" ++ show (nO+nF) ++ " (" ++ show nJ ++ " junks)")
+    printf "Parsed %i / %i (%i junks)" nO (nO+nF) nJ
   where
     acc :: (Int,Int,Int) -> Atom -> (Int,Int,Int)
     acc (nJ,nF,nO) (Junk _) = (nJ+1,nF,nO)
