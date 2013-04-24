@@ -112,10 +112,9 @@ go opts (f:_) = do
                 treeToHtml "Index" t
         
       where prefixify a s =
-                let l = wordsWhen (== '.') s in
-                if length l == 1
-                    then pinsert s ("$ANONYMOUS":l) a
-                    else pinsert s l a
+                case wordsWhen (== '.') s of
+                  l@[_] -> pinsert s ("$ANONYMOUS":l) a
+                  l     -> pinsert s l a
             wordsWhen     :: (Char -> Bool) -> String -> [String]
             wordsWhen p s =  case dropWhile p s of
                                   "" -> []
