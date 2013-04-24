@@ -28,7 +28,17 @@ import GhcCore.Parser
 import Paths_ghc_core_html
 
 
-
+-- | Print raw result of parse
+printRaw :: [Atom] -> IO ()
+printRaw xs = do
+    mapM_ print xs
+    let (nJ,nF,nO) = foldl acc (0,0,0) xs
+    putStrLn ("Parsed " ++ show nO ++ "/" ++ show (nO+nF) ++ " (" ++ show nJ ++ " junks)")
+  where
+    acc :: (Int,Int,Int) -> Atom -> (Int,Int,Int)
+    acc (nJ,nF,nO) (Junk _) = (nJ+1,nF,nO)
+    acc (nJ,nF,nO) (RawBinding {}) = (nJ,nF+1,nO)
+    acc (nJ,nF,nO) (BindingP {}) = (nJ,nF,nO+1)
 
 go :: [Flag] -> [String] -> IO ()
 go _ [] = error "no file specified"
@@ -55,9 +65,7 @@ go opts (f:_) = do
         Right xs -> do
             -- raw output
             when (Raw `elem` opts) $ do
-                mapM_ print xs
-                let (nJ,nF,nO) = foldl acc (0,0,0) xs
-                putStrLn ("Parsed " ++ show nO ++ "/" ++ show (nO+nF) ++ " (" ++ show nJ ++ " junks)")
+                printRaw xs
                 exitSuccess
             -- default HTML output
             let table = allSyms xs
@@ -69,11 +77,6 @@ go opts (f:_) = do
                 F.foldMap (atomToHtml table) xs
             exitSuccess
   where
-    acc :: (Int,Int,Int) -> Atom -> (Int,Int,Int)
-    acc (nJ,nF,nO) (Junk _) = (nJ+1,nF,nO)
-    acc (nJ,nF,nO) (RawBinding {}) = (nJ,nF+1,nO)
-    acc (nJ,nF,nO) (BindingP {}) = (nJ,nF,nO+1)
-
     onPage css p =
         H.html $ do
             H.head $ do
