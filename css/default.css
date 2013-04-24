@@ -30,6 +30,16 @@ header {
 header a {
     color: #88aaff;
 }
+pre.header {
+    margin:       0.5em 0 0 0;
+    padding-top:  3px;
+    padding-left: 3px;
+}
+pre.body {
+    margin:         0;
+    padding-left:   3px;
+    padding-bottom: 3px;
+}
 body {
     margin: 0;
     padding: 0;
