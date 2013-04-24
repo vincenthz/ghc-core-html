@@ -62,20 +62,18 @@ go opts (f:_) = do
                     ExitSuccess   -> return $ runP core () "core" out
     case result of
         Left err -> print err
-        Right xs -> do
-            -- raw output
-            when (Raw `elem` opts) $ do
-                printRaw xs
-                exitSuccess
-            -- default HTML output
-            let table = allSyms xs
-            LC.hPutStrLn stdout $ renderHtml $ onPage css $ do
-                H.header $ do
-                    H.a H.! HA.id "buttonToggleBody" $ "toggle bodies"
-                    _ <- " - "
-                    indexify table
-                F.foldMap (atomToHtml table) xs
-            exitSuccess
+        Right xs
+          | Raw `elem` opts -> printRaw xs >> exitSuccess
+          | otherwise       -> do
+              -- default HTML output
+              let table = allSyms xs
+              LC.hPutStrLn stdout $ renderHtml $ onPage css $ do
+                  H.header $ do
+                      H.a H.! HA.id "buttonToggleBody" $ "toggle bodies"
+                      _ <- " - "
+                      indexify table
+                  F.foldMap (atomToHtml table) xs
+              exitSuccess
   where
     onPage css p =
         H.html $ do
