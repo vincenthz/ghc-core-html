@@ -50,6 +50,7 @@ data Token =
     | Unknown String
     deriving (Show,Eq)
 
+tokenTable :: [(String, Token)]
 tokenTable =
     [ ("->", Arrow)
     , ("=" , Equal)
@@ -67,12 +68,14 @@ tokenTable =
     , ("_", Underscore)
     ]
 
+keywordTable :: [(String, Token)]
 keywordTable =
     [ ("case", Case)
     , ("of", Of)
     , ("forall", Forall)
     ]
 
+symbolBind :: Parser String
 symbolBind = do
     h <- alphaNum
     r <- many symb
@@ -81,6 +84,7 @@ symbolBind = do
     symb = oneOf symChars
     symChars = ['A'..'Z']++['a'..'z']++['0'..'9']++"_'"
 
+symbol :: Parser String
 symbol = do
     c <- option "" (string ":")
     h <- alphaNum <|> char '$'
@@ -90,8 +94,10 @@ symbol = do
     symb = oneOf symChars
     symChars = ['A'..'Z']++['a'..'z']++['0'..'9']++"_'$<=/."
 
+spaces1 :: Parser ()
 spaces1 = space >> spaces
 
+syntax :: Parser Token
 syntax = op <$> many1 (oneOf opChars)
   where
     opChars =  "!@#$%^&*(){}[]_-.,+:;\\/?<>|~`"
@@ -141,6 +147,7 @@ data PTree = PTree (M.Map String PTree)
            | Leaf String
            deriving (Show,Eq)
 
+pempty :: PTree
 pempty = PTree M.empty
 
 pinsert :: String -> [String] -> PTree -> PTree
@@ -149,6 +156,7 @@ pinsert v (x:xs) (PTree l) =
     PTree $ M.alter (Just . pinsert v xs . maybe (PTree M.empty) id) x l
 pinsert _ _      _ = error "pinsert"
 
+parseSignature :: Parser Signature
 parseSignature = do
     mforall <- optionMaybe (try (string "forall") *> spaces1 *> many1 (symbolBind <* spaces) <* char '.' <* spaces)
     sig     <- parseTypes
@@ -156,6 +164,7 @@ parseSignature = do
   where
     parseTypes = manyTill anyChar (try (string "\n["))
 
+parseBinding :: String -> Bool -> Parser Binding
 parseBinding name r = do
     signature <- parseSignature
     attrs     <- parseAttributes
@@ -164,6 +173,7 @@ parseBinding name r = do
   where
     parseAttributes = manyTill anyChar (try (string "]\n" >> lookAhead symbol))
 
+core :: Parser [Atom]
 core = many (try binding <|> junk)
   where junk    = Junk <$> (anyChar >>= \c -> liftM (c :) (manyTill anyChar (eof <|> try eoBinding)))
         binding = do recursive <- option False (string "Rec" >> spaces >> string "{" >> spaces >> return True)
@@ -177,6 +187,7 @@ core = many (try binding <|> junk)
                         Right b  -> return $ BindingP b
         eoBinding = string "\n\n" >> return ()
 
+go :: [Flag] -> [String] -> IO ()
 go _ [] = error "no file specified"
 go opts (f:_) = do
     -- read the core file, either directly if it's specified as a file, or
@@ -356,6 +367,7 @@ isGhcFlag :: Flag -> Bool
 isGhcFlag (Ghc _) = True
 isGhcFlag _       = False
 
+options :: [OptDescr Flag]
 options =
     [ Option ['r']  ["raw"]   (NoArg Raw)      "output raw instead of html"
     , Option ['c']  ["core"]  (NoArg CoreFile) "argument is already a core file"
@@ -364,10 +376,12 @@ options =
     , Option []     ["ghc"]   (ReqArg (\x -> Ghc x) "PROGRAM") "ghc executable to use (default ghc)"
     ]
 
+help :: IO b
 help = do
     putStrLn "usage: ghc-core-html [-r|--raw] [-c|--core] [--ghc program] [--cast] <file>"
     exitSuccess
 
+main :: IO ()
 main = do
     args <- getArgs
     case getOpt Permute options args of
