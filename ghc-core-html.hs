@@ -170,7 +170,7 @@ colorify :: M.Map String a -> String -> H.Html
 colorify table = F.foldMap (tokenToHtml table) . tokenify
 
 anchor :: H.ToValue a => a -> H.Html
-anchor sym = H.a ! HA.name (H.toValue sym) $ H.span ""
+anchor sym = H.a ! HA.name (H.toValue sym) $ ""
 
 toAnchor :: String -> H.Html -> H.Html
 toAnchor sym c = H.a ! HA.href (H.toValue ('#' : sym)) $ c
