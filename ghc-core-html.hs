@@ -41,9 +41,9 @@ go opts (f:_) = do
             else do
                 let args = "-O2":"-ddump-simpl":"-fforce-recomp":"--make":
                          (if WithCast `elem` opts then [] else ["-dsuppress-coercions"])
-                let ghcProgram = case filter isGhcFlag opts of
-                                    Ghc p:_ -> p
-                                    _       -> "ghc"
+                let ghcProgram = case [ p | Ghc p <- opts ] of
+                                    p:_ -> p
+                                    _   -> "ghc"
                 (x,out,err) <- readProcessWithExitCode ghcProgram (args ++ [f]) []
                 case x of
                     ExitFailure _ -> error ("dumping ghc core failed: " ++ err)
@@ -187,10 +187,6 @@ go opts (f:_) = do
 
 data Flag = Raw | CoreFile | WithCast | Help | Ghc String
     deriving (Show,Eq)
-
-isGhcFlag :: Flag -> Bool
-isGhcFlag (Ghc _) = True
-isGhcFlag _       = False
 
 options :: [OptDescr Flag]
 options =
