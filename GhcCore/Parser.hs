@@ -2,7 +2,7 @@
 -- Parser for output of GHC core dump using @-ddump-simpl@.
 module GhcCore.Parser where
 
-
+import Data.Maybe          (fromMaybe)
 import Text.Parsec
 import Text.Parsec.String
 import Control.Applicative ((<$>), (<*), (*>))
@@ -90,14 +90,12 @@ syntax :: Parser Token
 syntax = op <$> many1 (oneOf opChars)
   where
     opChars =  "!@#$%^&*(){}[]_-.,+:;\\/?<>|~`"
-    op s = case lookup s tokenTable of
-                Just t  -> t
-                Nothing -> Unknown s
+    op s = fromMaybe (Unknown s) $ lookup s tokenTable
 
 tokenify :: String -> [Token]
 tokenify = either (error . show) id . runP (manyTill tok eof) () ""
   where
-    tok     = (choice [spaceTok,stringTok,charTok,typeDef,sym,number,syntax,unknown] <?> "token")
+    tok      = choice [spaceTok,stringTok,charTok,typeDef,sym,number,syntax,unknown] <?> "token"
     spaceTok = Spaces <$> many1 (oneOf " \n\t")
     number  = Number <$> many1 digit
     sym     = keyOrIdent <$> (oneOf symFirstChars >>= \s -> many symb >>= \r -> return (s:r))
@@ -108,9 +106,7 @@ tokenify = either (error . show) id . runP (manyTill tok eof) () ""
     stringTok = StringT <$> try (char '"' *> many (noneOf ['"']) <* char '"')
     charTok = CharT <$> try (char '\'' *> anyChar <* char '\'')
     unknown = Unknown . (:[]) <$> anyToken
-    keyOrIdent s = case lookup s keywordTable of
-                        Nothing -> Symbol s
-                        Just k  -> k
+    keyOrIdent s = fromMaybe (Symbol s) $ lookup s keywordTable
 
 data Signature = Signature
     { signatureQualifiers :: Maybe [String]
@@ -142,7 +138,7 @@ pempty = PTree M.empty
 pinsert :: String -> [String] -> PTree -> PTree
 pinsert v [x]    (PTree l) = PTree $ M.insert x (Leaf v) l
 pinsert v (x:xs) (PTree l) =
-    PTree $ M.alter (Just . pinsert v xs . maybe (PTree M.empty) id) x l
+    PTree $ M.alter (Just . pinsert v xs . fromMaybe (PTree M.empty)) x l
 pinsert _ _      _ = error "pinsert"
 
 parseSignature :: Parser Signature
