@@ -16,7 +16,9 @@ data-files:          README.md
 
 Executable           ghc-core-html
   Main-Is:           ghc-core-html.hs
-  ghc-options:       -Wall -fno-warn-missing-signatures
+  Other-modules:
+    GhcCore.Parser
+  ghc-options:       -Wall
   Hs-Source-Dirs:    .
   Build-depends:     base >= 4 && < 5
                    , mtl
