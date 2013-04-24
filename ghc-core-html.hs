@@ -101,11 +101,6 @@ go opts (f:_) = do
                 case wordsWhen (== '.') s of
                   l@[_] -> pinsert s ("$ANONYMOUS":l) a
                   l     -> pinsert s l a
-            wordsWhen     :: (Char -> Bool) -> String -> [String]
-            wordsWhen p s =  case dropWhile p s of
-                                  "" -> []
-                                  s' -> w : wordsWhen p s''
-                                        where (w, s'') = break p s'
             treeToHtml n (Leaf m) = toAnchor m $ toHtml n
             treeToHtml n (PTree m) = do
                 H.span $ toHtml n
@@ -195,3 +190,15 @@ main = do
         (o,n,[]) | Help `elem` o -> help
                  | otherwise     -> go o n
         (_,_,err) -> error (show err)
+
+
+----------------------------------------------------------------
+-- Helpers
+----------------------------------------------------------------
+
+-- Split string into words using predicate
+wordsWhen     :: (Char -> Bool) -> String -> [String]
+wordsWhen p s =  case dropWhile p s of
+                      "" -> []
+                      s' -> w : wordsWhen p s''
+                            where (w, s'') = break p s'
