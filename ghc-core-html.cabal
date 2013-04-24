@@ -12,12 +12,15 @@ Stability:           experimental
 Build-Type:          Simple
 Homepage:            http://github.com/vincenthz/ghc-core-html
 Cabal-Version:       >=1.6
-data-files:          README.md
+data-files:
+  README.md
+  css/default.css
 
 Executable           ghc-core-html
   Main-Is:           ghc-core-html.hs
   Other-modules:
     GhcCore.Parser
+    Paths_ghc_core_html
   ghc-options:       -Wall
   Hs-Source-Dirs:    .
   Build-depends:     base >= 4 && < 5

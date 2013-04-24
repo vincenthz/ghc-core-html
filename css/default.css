@@ -1,0 +1,45 @@
+.kw {
+    color: #800080;
+}
+.nu {
+    color: #dda500;
+}
+.sym {
+    color: #0033aa;
+}
+a span.sym {
+    font-weight: bold;
+}
+.str {
+    color: #dd2200;
+}
+.ty {
+    color: #347C17;
+}
+.binding {
+    background-color: #ddd;
+}
+pre a {
+    text-decoration: none;
+}
+header {
+    background-color: #646D7E;
+    border-bottom: 1px thin #000;
+    padding: 20px 20px 20px 20px;
+}
+header a {
+    color: #88aaff;
+}
+body {
+    margin: 0;
+    padding: 0;
+}
+section {
+    margin-left: 50px;
+}
+#buttonToggleBody {
+    border: 1px thin #000;
+    background-color: #eee;
+    color: #000;
+    padding: 5px 5px 5px 5px
+}

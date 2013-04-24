@@ -24,11 +24,15 @@ import Text.Printf
 import qualified Data.Map as M
 
 import GhcCore.Parser
+import Paths_ghc_core_html
+
 
 
 go :: [Flag] -> [String] -> IO ()
 go _ [] = error "no file specified"
 go opts (f:_) = do
+    -- Read CSS file
+    css <- readFile =<< getDataFileName "css/default.css"
     -- read the core file, either directly if it's specified as a file, or
     -- by running ghc on the source file.
     result <-
@@ -55,7 +59,7 @@ go opts (f:_) = do
                 exitSuccess
             -- default HTML output
             let table = allSyms xs
-            LC.hPutStrLn stdout $ renderHtml $ onPage $ do
+            LC.hPutStrLn stdout $ renderHtml $ onPage css $ do
                 H.header $ do
                     H.a H.! HA.id "buttonToggleBody" $ "toggle bodies"
                     _ <- " - "
@@ -68,7 +72,7 @@ go opts (f:_) = do
     acc (nJ,nF,nO) (RawBinding {}) = (nJ,nF+1,nO)
     acc (nJ,nF,nO) (BindingP {}) = (nJ,nF,nO+1)
 
-    onPage p =
+    onPage css p =
         H.html $ do
             H.head $ do
                 H.title "core-2-html"
@@ -95,23 +99,6 @@ go opts (f:_) = do
                 , " });"
                 , "});"
                 ]
-
-    css = unlines
-        [ ".kw { color: #800080 }"
-        , ".nu { color: #dda500 }"
-        , ".sym { color: #0033aa }"
-        , "a span.sym { font-weight: bold; }"
-        , ".str { color: #dd2200 }"
-        , ".ty { color: #347C17 }"
-        , ".binding { background-color: #ddd }"
-        , "pre a { text-decoration: none }"
-        , "header { background-color: #646D7E; border-bottom: 1px thin #000; padding: 20px 20px 20px 20px }"
-        , "header a { color: #88aaff; }"
-        , "body { margin: 0; padding: 0; }"
-        , "section { margin-left: 50px; }"
-        , "#buttonToggleBody { border: 1px thin #000; background-color: #eee; color: #000; padding: 5px 5px 5px 5px }"
-        ]
-
     allSyms = foldl i M.empty
         where i a (Junk _)             = a
               i a (RawBinding sym _ _) = M.insert sym () a
