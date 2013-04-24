@@ -65,7 +65,7 @@ go opts (f:_) = do
     case result of
         Left err -> print err
         Right xs
-          | Raw `elem` opts -> printRaw xs >> exitSuccess
+          | Raw `elem` opts -> printRaw xs
           | otherwise       -> do
               -- default HTML output
               let table = allSyms xs
@@ -75,7 +75,6 @@ go opts (f:_) = do
                       _ <- " - "
                       indexify table
                   F.foldMap (atomToHtml table) xs
-              exitSuccess
   where
     onPage css js p =
         H.html $ do
