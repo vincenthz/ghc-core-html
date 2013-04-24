@@ -6,6 +6,7 @@ import Text.Parsec.String
 import System.Environment
 import System.Console.GetOpt
 import Control.Monad
+import Data.Maybe    (isJust)
 import Data.Monoid
 import Data.List
 
@@ -25,7 +26,6 @@ import qualified Data.Map as M
 import GhcCore.Parser
 
 
-
 go :: [Flag] -> [String] -> IO ()
 go _ [] = error "no file specified"
 go opts (f:_) = do
@@ -38,8 +38,8 @@ go opts (f:_) = do
                 let args = "-O2":"-ddump-simpl":"-fforce-recomp":"--make":
                          (if WithCast `elem` opts then [] else ["-dsuppress-coercions"])
                 let ghcProgram = case filter isGhcFlag opts of
-                                    (Ghc p):_ -> p
-                                    _         -> "ghc"
+                                    Ghc p:_ -> p
+                                    _       -> "ghc"
                 (x,out,err) <- readProcessWithExitCode ghcProgram (args ++ [f]) []
                 case x of
                     ExitFailure _ -> error ("dumping ghc core failed: " ++ err)
@@ -49,7 +49,7 @@ go opts (f:_) = do
         Right xs -> do
             -- raw output
             when (Raw `elem` opts) $ do
-                mapM_ (putStrLn . show) xs
+                mapM_ print xs
                 let (nJ,nF,nO) = foldl acc (0,0,0) xs
                 putStrLn ("Parsed " ++ show nO ++ "/" ++ show (nO+nF) ++ " (" ++ show nJ ++ " junks)")
                 exitSuccess
@@ -112,7 +112,7 @@ go opts (f:_) = do
         , "#buttonToggleBody { border: 1px thin #000; background-color: #eee; color: #000; padding: 5px 5px 5px 5px }"
         ]
 
-    allSyms atoms = foldl i M.empty atoms
+    allSyms = foldl i M.empty
         where i a (Junk _)             = a
               i a (RawBinding sym _ _) = M.insert sym () a
               i a (BindingP bind)      = M.insert (bindSymbol bind) () a
@@ -157,17 +157,17 @@ go opts (f:_) = do
     colorify table = mconcat . map (tokenToHtml table) . tokenify
     
     anchor sym = H.a H.! HA.name (H.toValue sym) $ H.span ""
-    toAnchor sym c = H.a H.! HA.href (H.toValue ("#" ++ sym)) $ c
+    toAnchor sym c = H.a H.! HA.href (H.toValue ('#' : sym)) $ c
 
     tokenToHtml table (Symbol s)  =
         let mn = case s of
-                    _ | "GHC.Types." `isPrefixOf` s -> (Just $ drop 10 s)
-                      | "GHC.CString." `isPrefixOf` s  -> (Just $ drop 12 s)
-                      | "GHC.Prim." `isPrefixOf` s  -> (Just $ drop 9 s)
-                      | "GHC.Base." `isPrefixOf` s  -> (Just $ drop 9 s)
-                      | "GHC.Word." `isPrefixOf` s  -> (Just $ drop 9 s)
+                    _ | "GHC.Types."   `isPrefixOf` s -> Just $ drop 10 s
+                      | "GHC.CString." `isPrefixOf` s -> Just $ drop 12 s
+                      | "GHC.Prim."    `isPrefixOf` s -> Just $ drop 9 s
+                      | "GHC.Base."    `isPrefixOf` s -> Just $ drop 9 s
+                      | "GHC.Word."    `isPrefixOf` s -> Just $ drop 9 s
                       | otherwise -> Nothing
-            found = maybe False (const True) $ M.lookup s table
+            found   = isJust $ M.lookup s table
             manchor = if found then toAnchor s else id
          
          in case mn of
