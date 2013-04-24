@@ -109,62 +109,76 @@ go opts (f:_) = do
                         H.li H.! HA.class_ "idxdir" $ do
                             treeToHtml k v
 
-    atomToHtml _ (Junk s) = H.section $
-        H.pre (toHtml s)
-    atomToHtml table (BindingP bind) = H.section H.! HA.class_ "binding" $ do
-        anchor (bindSymbol bind)
-        let (first:after) = lines $ bindBody bind
-        H.pre H.! HA.class_ "header" H.! HA.title (H.toValue $ signatureRaw $ bindSignature bind) $ colorify table first
-        H.pre H.! HA.class_ "body" $ colorify table $ unlines after
-    atomToHtml _ (RawBinding sym t errs) = H.section $ do
-        anchor sym
-        H.p (toHtml errs)
-        H.pre (toHtml t)
 
-    colorify table = mconcat . map (tokenToHtml table) . tokenify
+atomToHtml :: M.Map String a -> Atom -> H.Html
+atomToHtml _ (Junk s) = H.section $
+    H.pre (toHtml s)
+atomToHtml table (BindingP bind) = H.section H.! HA.class_ "binding" $ do
+    anchor (bindSymbol bind)
+    let (first:after) = lines $ bindBody bind
+    H.pre H.! HA.class_ "header" H.! HA.title (H.toValue $ signatureRaw $ bindSignature bind) $ colorify table first
+    H.pre H.! HA.class_ "body" $ colorify table $ unlines after
+atomToHtml _ (RawBinding sym t errs) = H.section $ do
+    anchor sym
+    H.p (toHtml errs)
+    H.pre (toHtml t)
+
     
-    anchor sym = H.a H.! HA.name (H.toValue sym) $ H.span ""
-    toAnchor sym c = H.a H.! HA.href (H.toValue ('#' : sym)) $ c
-
-    tokenToHtml table (Symbol s)  =
-        let mn = case s of
-                    _ | "GHC.Types."   `isPrefixOf` s -> Just $ drop 10 s
-                      | "GHC.CString." `isPrefixOf` s -> Just $ drop 12 s
-                      | "GHC.Prim."    `isPrefixOf` s -> Just $ drop 9 s
-                      | "GHC.Base."    `isPrefixOf` s -> Just $ drop 9 s
-                      | "GHC.Word."    `isPrefixOf` s -> Just $ drop 9 s
-                      | otherwise -> Nothing
-            found   = isJust $ M.lookup s table
-            manchor = if found then toAnchor s else id
-         
-         in case mn of
-            Nothing -> manchor (H.span H.! HA.class_ "sym" $ toHtml s)
-            Just n  -> manchor (H.span H.! HA.class_ "sym" H.! HA.title (H.toValue s) $ toHtml n)
+tokenToHtml :: M.Map String a -> Token -> H.Html
+tokenToHtml table (Symbol s)  =
+    let mn = case s of
+                _ | "GHC.Types."   `isPrefixOf` s -> Just $ drop 10 s
+                  | "GHC.CString." `isPrefixOf` s -> Just $ drop 12 s
+                  | "GHC.Prim."    `isPrefixOf` s -> Just $ drop 9 s
+                  | "GHC.Base."    `isPrefixOf` s -> Just $ drop 9 s
+                  | "GHC.Word."    `isPrefixOf` s -> Just $ drop 9 s
+                  | otherwise -> Nothing
+        found   = isJust $ M.lookup s table
+        manchor = if found then toAnchor s else id
+     in case mn of
+        Nothing -> manchor (H.span H.! HA.class_ "sym" $ toHtml s)
+        Just n  -> manchor (H.span H.! HA.class_ "sym" H.! HA.title (H.toValue s) $ toHtml n)
         
-    tokenToHtml _ (Number n)  = H.span H.! HA.class_ "nu" H.! HA.title hexVal $ toHtml n
-                                  where hexVal = H.toValue ( printf "hex: 0x%x" (read n :: Integer) :: String)
-    tokenToHtml _ (Spaces s)  = toHtml s
-    tokenToHtml _ (StringT s) = H.span H.! HA.class_ "str" $ toHtml ("\"" ++ s ++ "\"")
-    tokenToHtml _ (CharT c)   = H.span H.! HA.class_ "str" $ toHtml ("\'" ++ [c] ++ "\'")
-    tokenToHtml _ (TypeDef s) = ":: " `mappend` (H.span H.! HA.class_ "ty" $ toHtml s)
-    tokenToHtml _ Arrow       = "->"
-    tokenToHtml _ Dot         = "."
-    tokenToHtml _ BSlash      = "\\"
-    tokenToHtml _ Equal       = "="
-    tokenToHtml _ LBrace      = "{"
-    tokenToHtml _ RBrace      = "}"
-    tokenToHtml _ LBrack      = "["
-    tokenToHtml _ RBrack      = "]"
-    tokenToHtml _ LParen      = "("
-    tokenToHtml _ RParen      = ")"
-    tokenToHtml _ Unit        = "()"
-    tokenToHtml _ LParenHash  = "(#"
-    tokenToHtml _ RParenHash  = "#)"
-    tokenToHtml _ Case        = H.span H.! HA.class_ "kw" $ "case"
-    tokenToHtml _ Of          = H.span H.! HA.class_ "kw" $ "of"
-    tokenToHtml _ Forall      = H.span H.! HA.class_ "kw" $ "forall"
-    tokenToHtml _ Underscore  = "_"
-    tokenToHtml _ (Unknown s) = toHtml s
+tokenToHtml _ (Number n)  = H.span H.! HA.class_ "nu" H.! HA.title hexVal $ toHtml n
+                              where hexVal = H.toValue ( printf "hex: 0x%x" (read n :: Integer) :: String)
+tokenToHtml _ (Spaces s)  = toHtml s
+tokenToHtml _ (StringT s) = H.span H.! HA.class_ "str" $ toHtml ("\"" ++ s ++ "\"")
+tokenToHtml _ (CharT c)   = H.span H.! HA.class_ "str" $ toHtml ("\'" ++ [c] ++ "\'")
+tokenToHtml _ (TypeDef s) = ":: " `mappend` (H.span H.! HA.class_ "ty" $ toHtml s)
+tokenToHtml _ Arrow       = "->"
+tokenToHtml _ Dot         = "."
+tokenToHtml _ BSlash      = "\\"
+tokenToHtml _ Equal       = "="
+tokenToHtml _ LBrace      = "{"
+tokenToHtml _ RBrace      = "}"
+tokenToHtml _ LBrack      = "["
+tokenToHtml _ RBrack      = "]"
+tokenToHtml _ LParen      = "("
+tokenToHtml _ RParen      = ")"
+tokenToHtml _ Unit        = "()"
+tokenToHtml _ LParenHash  = "(#"
+tokenToHtml _ RParenHash  = "#)"
+tokenToHtml _ Case        = H.span H.! HA.class_ "kw" $ "case"
+tokenToHtml _ Of          = H.span H.! HA.class_ "kw" $ "of"
+tokenToHtml _ Forall      = H.span H.! HA.class_ "kw" $ "forall"
+tokenToHtml _ Underscore  = "_"
+tokenToHtml _ (Unknown s) = toHtml s
+
+
+colorify :: M.Map String a -> String -> H.Html
+colorify table = F.foldMap (tokenToHtml table) . tokenify
+
+anchor :: H.ToValue a => a -> H.Html
+anchor sym = H.a H.! HA.name (H.toValue sym) $ H.span ""
+
+toAnchor :: String -> H.Html -> H.Html
+toAnchor sym c = H.a H.! HA.href (H.toValue ('#' : sym)) $ c
+
+
+
+----------------------------------------------------------------
+-- Main
+----------------------------------------------------------------
 
 data Flag = Raw | CoreFile | WithCast | Help | Ghc String
     deriving (Show,Eq)
