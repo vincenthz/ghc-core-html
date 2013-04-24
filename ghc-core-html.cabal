@@ -15,6 +15,7 @@ Cabal-Version:       >=1.6
 data-files:
   README.md
   css/default.css
+  js/page.js
 
 Executable           ghc-core-html
   Main-Is:           ghc-core-html.hs

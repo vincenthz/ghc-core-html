@@ -45,6 +45,7 @@ go _ [] = error "no file specified"
 go opts (f:_) = do
     -- Read CSS file
     css <- readFile =<< getDataFileName "css/default.css"
+    js  <- readFile =<< getDataFileName "js/page.js"
     -- read the core file, either directly if it's specified as a file, or
     -- by running ghc on the source file.
     result <-
@@ -67,7 +68,7 @@ go opts (f:_) = do
           | otherwise       -> do
               -- default HTML output
               let table = allSyms xs
-              LC.hPutStrLn stdout $ renderHtml $ onPage css $ do
+              LC.hPutStrLn stdout $ renderHtml $ onPage css js $ do
                   H.header $ do
                       H.a H.! HA.id "buttonToggleBody" $ "toggle bodies"
                       _ <- " - "
@@ -75,33 +76,15 @@ go opts (f:_) = do
                   F.foldMap (atomToHtml table) xs
               exitSuccess
   where
-    onPage css p =
+    onPage css js p =
         H.html $ do
             H.head $ do
                 H.title "core-2-html"
                 H.style $ toHtml css
                 H.script H.! HA.src "http://code.jquery.com/jquery-1.9.1.min.js" $ ""
-                H.script H.! HA.type_ "text/javascript" $ toHtml collapseIndexScript
-
+                H.script H.! HA.type_ "text/javascript" $ toHtml js
             H.body p
-      where
-        collapseIndexScript = unlines
-                [ "jQuery(document).ready(function() {"
-                , " jQuery(\".idxdir > ul\").hide();"
-                , " jQuery(\".idxdir > span\").click(function()"
-                , " {"
-                , " jQuery(this).next(\"ul\").slideToggle(200);"
-                , " });"
-                , " jQuery(\"#buttonToggleBody\").click(function()"
-                , " {"
-                , " jQuery(\"pre.body\").slideToggle(200);"
-                , " });"
-                , " jQuery(\".binding > .header\").click(function()"
-                , " {"
-                , " jQuery(this).next(\".body\").slideToggle(200);"
-                , " });"
-                , "});"
-                ]
+
     allSyms = foldl i M.empty
         where i a (Junk _)             = a
               i a (RawBinding sym _ _) = M.insert sym () a
