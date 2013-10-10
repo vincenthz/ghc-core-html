@@ -66,10 +66,20 @@ keywordTable =
 
 symbolBind :: Parser String
 symbolBind = do
-    h <- alphaNum
-    r <- many symb
-    return (h:r)
+    name <|> nameWithType
   where
+    name = do
+      h <- alphaNum
+      r <- many symb
+      return (h:r)
+    nameWithType = do
+      _ <- char '('
+      n <- name
+      _ <- spaces
+      _ <- string "::" *> spaces
+      _type <- many1 $ noneOf ")"
+      _ <- char ')'
+      return n
     symb = oneOf symChars
     symChars = ['A'..'Z']++['a'..'z']++['0'..'9']++"_'"
 
