@@ -103,7 +103,7 @@ syntax = op <$> many1 (oneOf opChars)
     op s = fromMaybe (Unknown s) $ lookup s tokenTable
 
 tokenify :: String -> [Token]
-tokenify = either (error . show) id . runP (manyTill tok eof) () ""
+tokenify = either (error . show) id . runParser (manyTill tok eof) () ""
   where
     tok      = choice [spaceTok,stringTok,charTok,typeDef,sym,number,syntax,unknown] <?> "token"
     spaceTok = Spaces <$> many1 (oneOf " \n\t")
@@ -177,7 +177,7 @@ core = many (try binding <|> junk)
                      optional (manyTill anyChar (lookAhead (string "::")))
                      _ <- string "::" *> spaces
                      z <- manyTill anyChar (try (spaces >> eof) <|> try eoBinding)
-                     case runP (parseBinding s recursive) () ("binding " ++ s) z of
+                     case runParser (parseBinding s recursive) () ("binding " ++ s) z of
                         Left err -> return $ RawBinding s z (show err)
                         Right b  -> return $ BindingP b
         eoBinding = string "\n\n" >> return ()

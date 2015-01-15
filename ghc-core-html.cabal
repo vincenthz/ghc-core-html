@@ -28,7 +28,7 @@ Executable           ghc-core-html
                    , mtl
                    , containers
                    , bytestring
-                   , parsec
+                   , parsec >= 3.1 && < 3.2
                    , blaze-html
                    , process
 
