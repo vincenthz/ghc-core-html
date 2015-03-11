@@ -1,5 +1,7 @@
 -- |
 -- Parser for output of GHC core dump using @-ddump-simpl@.
+
+{-# LANGUAGE CPP #-}
 module GhcCore.Parser where
 
 import Data.Maybe          (fromMaybe)
@@ -103,7 +105,7 @@ syntax = op <$> many1 (oneOf opChars)
     op s = fromMaybe (Unknown s) $ lookup s tokenTable
 
 tokenify :: String -> [Token]
-tokenify = either (error . show) id . runParser (manyTill tok eof) () ""
+tokenify = either (error . show) id . runCoreParser (manyTill tok eof) () ""
   where
     tok      = choice [spaceTok,stringTok,charTok,typeDef,sym,number,syntax,unknown] <?> "token"
     spaceTok = Spaces <$> many1 (oneOf " \n\t")
@@ -177,7 +179,14 @@ core = many (try binding <|> junk)
                      optional (manyTill anyChar (lookAhead (string "::")))
                      _ <- string "::" *> spaces
                      z <- manyTill anyChar (try (spaces >> eof) <|> try eoBinding)
-                     case runParser (parseBinding s recursive) () ("binding " ++ s) z of
+                     case runCoreParser (parseBinding s recursive) () ("binding " ++ s) z of
                         Left err -> return $ RawBinding s z (show err)
                         Right b  -> return $ BindingP b
         eoBinding = string "\n\n" >> return ()
+
+#if MIN_VERSION_parsec(3,1,0)
+runCoreParser :: Parsec String u a -> u -> SourceName -> String -> Either ParseError a
+runCoreParser = runParser
+#else
+runCoreParser = runP
+#endif

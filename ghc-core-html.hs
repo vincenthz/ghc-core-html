@@ -1,7 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import Text.Parsec
 import Text.Parsec.String
 import System.Environment
 import System.Console.GetOpt
@@ -61,7 +60,7 @@ go opts (f:_) = do
                 (x,out,err) <- readProcessWithExitCode ghcProgram (args ++ [f]) []
                 case x of
                     ExitFailure _ -> error ("dumping ghc core failed: " ++ err)
-                    ExitSuccess   -> return $ runParser core () "core" out
+                    ExitSuccess   -> return $ runCoreParser core () "core" out
     case result of
         Left err -> print err
         Right xs
