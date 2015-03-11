@@ -64,21 +64,20 @@ keywordTable =
     ]
 
 symbolBind :: Parser String
-symbolBind = do
-    name <|> nameWithType
+symbolBind = name <|> nameWithType
   where
     name = do
-      h <- alphaNum
-      r <- many symb
-      return (h:r)
+        h <- alphaNum
+        r <- many symb
+        return (h:r)
     nameWithType = do
-      _ <- char '('
-      n <- name
-      _ <- spaces
-      _ <- string "::" *> spaces
-      _type <- many1 $ noneOf ")"
-      _ <- char ')'
-      return n
+        _ <- char '('
+        n <- name
+        _ <- spaces
+        _ <- string "::" *> spaces
+        _type <- many1 $ noneOf ")"
+        _ <- char ')'
+        return n
     symb = oneOf symChars
     symChars = ['A'..'Z']++['a'..'z']++['0'..'9']++"_'"
 
@@ -170,15 +169,16 @@ parseBinding name r = do
 core :: Parser [Atom]
 core = many (try binding <|> junk)
   where junk    = Junk <$> (anyChar >>= \c -> liftM (c :) (manyTill anyChar (eof <|> try eoBinding)))
-        binding = do recursive <- option False (string "Rec" >> spaces >> string "{" >> spaces >> return True)
-                     s <- try symbol
-                     spaces
-                     optional (manyTill anyChar (lookAhead (string "::")))
-                     _ <- string "::" *> spaces
-                     z <- manyTill anyChar (try (spaces >> eof) <|> try eoBinding)
-                     case runCoreParser (parseBinding s recursive) () ("binding " ++ s) z of
-                        Left err -> return $ RawBinding s z (show err)
-                        Right b  -> return $ BindingP b
+        binding = do
+            recursive <- option False (string "Rec" >> spaces >> string "{" >> spaces >> return True)
+            s <- try symbol
+            spaces
+            optional (manyTill anyChar (lookAhead (string "::")))
+            _ <- string "::" *> spaces
+            z <- manyTill anyChar (try (spaces >> eof) <|> try eoBinding)
+            case runCoreParser (parseBinding s recursive) () ("binding " ++ s) z of
+                Left err -> return $ RawBinding s z (show err)
+                Right b  -> return $ BindingP b
         eoBinding = string "\n\n" >> return ()
 
 runCoreParser :: Parsec String u a -> u -> SourceName -> String -> Either ParseError a
