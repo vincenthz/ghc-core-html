@@ -1,7 +1,6 @@
 -- |
 -- Parser for output of GHC core dump using @-ddump-simpl@.
 
-{-# LANGUAGE CPP #-}
 module GhcCore.Parser where
 
 import Data.Maybe          (fromMaybe)
@@ -11,8 +10,6 @@ import Control.Applicative ((<$>), (<*), (*>))
 import Control.Monad
 
 import qualified Data.Map as M
-
-
 
 data Token =
       Symbol String
@@ -184,9 +181,5 @@ core = many (try binding <|> junk)
                         Right b  -> return $ BindingP b
         eoBinding = string "\n\n" >> return ()
 
-#if MIN_VERSION_parsec(3,1,0)
 runCoreParser :: Parsec String u a -> u -> SourceName -> String -> Either ParseError a
 runCoreParser = runParser
-#else
-runCoreParser = runP
-#endif
