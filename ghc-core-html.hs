@@ -193,7 +193,7 @@ options =
 
 help :: IO b
 help = do
-    putStrLn "usage: ghc-core-html [-r|--raw] [-c|--core] [--ghc program] [--cast] <file>"
+    putStrLn $ usageInfo "ghc-core-html" options
     exitSuccess
 
 main :: IO ()
