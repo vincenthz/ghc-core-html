@@ -10,9 +10,8 @@ import Data.Monoid
 import Data.List
 import qualified Data.Foldable as F
 
-import Text.Blaze.Html5 (toHtml)
+import Text.Blaze.Html5 (toHtml, (!))
 import qualified Text.Blaze.Html5 as H
-import           Text.Blaze.Html5   ((!))
 import qualified Text.Blaze.Html5.Attributes as HA
 import Text.Blaze.Html.Renderer.Utf8
 
