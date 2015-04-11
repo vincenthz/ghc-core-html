@@ -4,8 +4,9 @@ module Main where
 import Text.Parsec.String
 import System.Environment
 import System.Console.GetOpt
+import Control.Applicative
 import Control.Monad
-import Data.Maybe    (isJust)
+import Data.Maybe    (fromMaybe, isJust, listToMaybe)
 import Data.Monoid
 import Data.List
 import qualified Data.Foldable as F
@@ -26,6 +27,9 @@ import qualified Data.Map as M
 import GhcCore.Parser
 import Paths_ghc_core_html
 
+-- To suppress warnings in ghc 7.10
+import Prelude
+
 
 -- | Print raw result of parse
 printRaw :: [Atom] -> IO ()
@@ -39,6 +43,25 @@ printRaw xs = do
     acc (nJ,nF,nO) (RawBinding {}) = (nJ,nF+1,nO)
     acc (nJ,nF,nO) (BindingP {}) = (nJ,nF,nO+1)
 
+runGhc :: [Flag] -> String -> IO (Either String [Atom])
+runGhc opts filename = do
+  (xc, out, err) <- readProcessWithExitCode ghcProgram args []
+  case xc of
+    ExitFailure ec -> return (Left (printf "dumping ghc core failed with exit code %d: %s" ec err))
+    ExitSuccess ->
+      case runCoreParser core () "core" out of
+        Left parseErr -> return (Left (show parseErr))
+        Right atoms -> return (Right atoms)
+  where
+    withCasts = if WithCast `elem` opts then [] else ["-dsuppress-coercions"]
+    baseArgs = withCasts ++ ["-O2", "-ddump-simpl", "-fforce-recomp", "--make", filename]
+    args = foldr applyGhcOptionFlag baseArgs opts
+    ghcProgram = fromMaybe "ghc" $ listToMaybe [ p | Ghc p <- opts ]
+    applyGhcOptionFlag f acc =
+      case f of
+        GhcOption s -> s : acc
+        _ -> acc
+
 go :: [Flag] -> [String] -> IO ()
 go _ [] = error "no file specified"
 go opts (f:_) = do
@@ -49,19 +72,10 @@ go opts (f:_) = do
     -- by running ghc on the source file.
     result <-
         if CoreFile `elem` opts
-            then parseFromFile core f
-            else do
-                let args = "-O2":"-ddump-simpl":"-fforce-recomp":"--make":
-                         (if WithCast `elem` opts then [] else ["-dsuppress-coercions"])
-                let ghcProgram = case [ p | Ghc p <- opts ] of
-                                    p:_ -> p
-                                    _   -> "ghc"
-                (x,out,err) <- readProcessWithExitCode ghcProgram (args ++ [f]) []
-                case x of
-                    ExitFailure _ -> error ("dumping ghc core failed: " ++ err)
-                    ExitSuccess   -> return $ runCoreParser core () "core" out
+            then either (Left . show) Right <$> parseFromFile core f
+            else runGhc opts f
     case result of
-        Left err -> print err
+        Left err -> hPutStrLn stderr err >> exitFailure
         Right xs
           | Raw `elem` opts -> printRaw xs
           | otherwise       -> do
@@ -178,7 +192,7 @@ toAnchor sym c = H.a ! HA.href (H.toValue ('#' : sym)) $ c
 -- Main
 ----------------------------------------------------------------
 
-data Flag = Raw | CoreFile | WithCast | Help | Ghc String
+data Flag = Raw | CoreFile | WithCast | Help | Ghc String | GhcOption String
     deriving (Show,Eq)
 
 options :: [OptDescr Flag]
@@ -186,6 +200,7 @@ options =
     [ Option ['r']  ["raw"]   (NoArg Raw)      "output raw instead of html"
     , Option ['c']  ["core"]  (NoArg CoreFile) "argument is already a core file"
     , Option []     ["cast"]  (NoArg WithCast) "don't hide cast / coercions"
+    , Option []     ["ghc-option"] (ReqArg GhcOption "FLAG") "pass an argument to ghc"
     , Option ['h']  ["help"]  (NoArg Help)     "show help"
     , Option []     ["ghc"]   (ReqArg (\x -> Ghc x) "PROGRAM") "ghc executable to use (default ghc)"
     ]
