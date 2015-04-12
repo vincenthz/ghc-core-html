@@ -45,22 +45,22 @@ printRaw xs = do
 
 runGhc :: [Flag] -> String -> IO (Either String [Atom])
 runGhc opts filename = do
-  (xc, out, err) <- readProcessWithExitCode ghcProgram args []
-  case xc of
-    ExitFailure ec -> return (Left (printf "dumping ghc core failed with exit code %d: %s" ec err))
-    ExitSuccess ->
-      case runCoreParser core () "core" out of
-        Left parseErr -> return (Left (show parseErr))
-        Right atoms -> return (Right atoms)
+    (xc, out, err) <- readProcessWithExitCode ghcProgram args []
+    case xc of
+        ExitFailure ec -> return (Left (printf "dumping ghc core failed with exit code %d: %s" ec err))
+        ExitSuccess    ->
+            case runCoreParser core () "core" out of
+                Left parseErr -> return (Left (show parseErr))
+                Right atoms   -> return (Right atoms)
   where
-    withCasts = if WithCast `elem` opts then [] else ["-dsuppress-coercions"]
-    baseArgs = withCasts ++ ["-O2", "-ddump-simpl", "-fforce-recomp", "--make", filename]
-    args = foldr applyGhcOptionFlag baseArgs opts
+    withCasts  = if WithCast `elem` opts then [] else ["-dsuppress-coercions"]
+    baseArgs   = withCasts ++ ["-O2", "-ddump-simpl", "-fforce-recomp", "--make", filename]
+    args       = foldr applyGhcOptionFlag baseArgs opts
     ghcProgram = fromMaybe "ghc" $ listToMaybe [ p | Ghc p <- opts ]
     applyGhcOptionFlag f acc =
-      case f of
-        GhcOption s -> s : acc
-        _ -> acc
+        case f of
+            GhcOption s -> s : acc
+            _           -> acc
 
 go :: [Flag] -> [String] -> IO ()
 go _ [] = error "no file specified"
