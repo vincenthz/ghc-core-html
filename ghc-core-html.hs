@@ -89,12 +89,11 @@ go opts (f:_) = do
                 -- default HTML output
                 let table = allSyms xs
                 LC.hPutStrLn stdout $ renderHtml $ onPage css js $ do
-
-                H.header $ do
-                    H.a ! HA.id "buttonToggleBody" $ "toggle bodies"
-                    _ <- " - "
-                    indexify table
-                F.foldMap (atomToHtml table) xs
+                    H.header $ do
+                        H.a ! HA.id "buttonToggleBody" $ "toggle bodies"
+                        _ <- " - "
+                        indexify table
+                    F.foldMap (atomToHtml table) xs
   where
     onPage css js p =
         H.html $ do
