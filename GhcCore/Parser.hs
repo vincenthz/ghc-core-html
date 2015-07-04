@@ -135,10 +135,11 @@ tokenify = either (error . show) id . runCoreParser (manyTill tok eof) () ""
     unknown = Unknown . (:[]) <$> anyToken
     keyOrIdent s = fromMaybe (Symbol s) $ lookup s keywordTable
 
-    typeSignature = parseLevel (0 :: Int)
-      where parseLevel n
+    typeSignature = parseLevel 0
+      where parseLevel :: Int -> Parser String
+            parseLevel n
                 | n == 0    = do
-                    left <- many (noneOf "()=")
+                    left <- many $ noneOf "()="
                     rt   <- try ((:) <$> char '(' <*> parseLevel 1)
                               <|> return ""
                     return (left ++ rt)
