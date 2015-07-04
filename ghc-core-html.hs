@@ -30,6 +30,26 @@ import Paths_ghc_core_html
 -- To suppress warnings in ghc 7.10
 import Prelude
 
+dataToggle :: H.AttributeValue -> H.Attribute
+dataToggle = H.dataAttribute "toggle"
+
+dataTarget :: H.AttributeValue -> H.Attribute
+dataTarget = H.dataAttribute "target"
+
+dataDismiss :: H.AttributeValue -> H.Attribute
+dataDismiss = H.dataAttribute "dismiss"
+
+ariaHidden :: Bool -> H.Attribute
+ariaHidden bool =
+    H.customAttribute  "aria-hidden" (if bool then "true" else "false")
+
+ariaExpanded :: Bool -> H.Attribute
+ariaExpanded bool =
+    H.customAttribute "aria-expanded" (if bool then "true" else "false")
+
+ariaControls :: H.AttributeValue -> H.Attribute
+ariaControls s =
+    H.customAttribute "aria-controls" s
 
 -- | Print raw result of parse
 printRaw :: [Atom] -> IO ()
@@ -89,20 +109,43 @@ go opts (f:_) = do
                 -- default HTML output
                 let table = allSyms xs
                 LC.hPutStrLn stdout $ renderHtml $ onPage css js $ do
+                    H.nav ! HA.class_ "navbar navbar-inverse navbar-fixed-top" $
+                        H.div ! HA.class_ "container-fluid" $ do
+                            H.div ! HA.class_ "navbar-header" $ do
+                                H.button ! HA.type_ "button" ! HA.class_ "navbar-toggle collapsed" ! dataToggle "collapse" ! dataTarget "#navbar" ! ariaExpanded False ! ariaControls "navbar" $ do
+                                    H.span ! HA.class_ "sr-only" $ "Toggle navigation"
+                                    H.span ! HA.class_ "icon-bar" $ mempty
+                                    H.span ! HA.class_ "icon-bar" $ mempty
+                                    H.span ! HA.class_ "icon-bar" $ mempty
+                                H.a ! HA.class_ "navbar-brand" ! HA.href "#" $ toHtml ("Core: " ++ f)
+                            H.div ! HA.id "navbar" ! HA.class_ "navbar-collapse collapse" $ do
+                                H.ul ! HA.class_ "nav navbar-nav navbar-right" $
+                                    H.li $ H.a ! HA.href "#" ! HA.id "buttonToggleBody" $ do
+                                        "Toggle Bodies"
+                                H.form ! HA.class_ "navbar-form navbar-right" $
+                                    H.input ! HA.type_ "text" ! HA.class_ "form-control" ! HA.placeholder "Search..."
+                    H.div ! HA.class_ "container-fluid" $
+                        H.div ! HA.class_ "row" $ do
+                            H.div ! HA.class_ "col-sm-3 col-md-2 sidebar" $
+                                indexify table
+                            H.div ! HA.class_ "col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main" $ do
+                                F.foldMap (atomToHtml table) xs
+                    {-
                     H.header $ do
                         H.a ! HA.id "buttonToggleBody" $ "toggle bodies"
                         _ <- " - "
                         indexify table
-                    F.foldMap (atomToHtml table) xs
+                    -}
   where
     onPage css js p =
         H.html $ do
             H.head $ do
                 H.title "core-2-html"
                 H.style $ toHtml css
-                H.script ! HA.src "http://code.jquery.com/jquery-1.9.1.min.js" $ ""
-                H.script ! HA.type_ "text/javascript" $ toHtml js
-            H.body p
+            H.body $ do
+                H.script ! HA.src "https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js" $ ""
+                H.script ! HA.type_ "text/javascript" $ H.preEscapedString js
+                p
 
     allSyms = foldl i M.empty
         where i a (Junk _)             = a
@@ -163,6 +206,9 @@ tokenToHtml _ (Number n)  = H.span ! HA.class_ "nu" ! HA.title hexVal $ toHtml n
 tokenToHtml _ (Spaces s)  = toHtml s
 tokenToHtml _ (StringT s) = H.span ! HA.class_ "str" $ toHtml ("\"" ++ s ++ "\"")
 tokenToHtml _ (CharT c)   = H.span ! HA.class_ "str" $ toHtml ("\'" ++ [c] ++ "\'")
+tokenToHtml _ (FunDef l)  = "\\" `mappend` (mconcat $ concatMap renderFunParam l) `mappend` " ->"
+  where renderFunParam (FunParam sym sig) = [" (", toHtml sym, " :: ", H.span ! HA.class_ "ty" $ toHtml sig, ")"]
+        renderFunParam (FunParamAt sym)   = [" (@ ", toHtml sym, " )"]
 tokenToHtml _ (TypeDef s) = ":: " `mappend` (H.span ! HA.class_ "ty" $ toHtml s)
 tokenToHtml _ Arrow       = "->"
 tokenToHtml _ Dot         = "."
@@ -178,6 +224,7 @@ tokenToHtml _ Unit        = "()"
 tokenToHtml _ LParenHash  = "(#"
 tokenToHtml _ RParenHash  = "#)"
 tokenToHtml _ Case        = H.span ! HA.class_ "kw" $ "case"
+tokenToHtml _ Let         = H.span ! HA.class_ "kw" $ "let"
 tokenToHtml _ Of          = H.span ! HA.class_ "kw" $ "of"
 tokenToHtml _ Forall      = H.span ! HA.class_ "kw" $ "forall"
 tokenToHtml _ Underscore  = "_"

@@ -6,7 +6,7 @@ module GhcCore.Parser where
 import Data.Maybe          (fromMaybe)
 import Text.Parsec
 import Text.Parsec.String
-import Control.Applicative ((<$>), (<*), (*>))
+import Control.Applicative ((<$>), (<*), (*>), (<*>))
 import Control.Monad
 
 import qualified Data.Map as M
@@ -17,6 +17,7 @@ data Token =
     | Spaces String
     | StringT String
     | CharT Char
+    | FunDef [FunParam]
     | TypeDef String
     | Arrow
     | Dot
@@ -32,10 +33,16 @@ data Token =
     | LParenHash
     | RParenHash
     | Case
+    | Let
     | Of
     | Forall
     | Underscore
     | Unknown String
+    deriving (Show,Eq)
+
+data FunParam =
+      FunParam String String -- symbol :: signature
+    | FunParamAt String      -- @ symbol
     deriving (Show,Eq)
 
 tokenTable :: [(String, Token)]
@@ -103,18 +110,43 @@ syntax = op <$> many1 (oneOf opChars)
 tokenify :: String -> [Token]
 tokenify = either (error . show) id . runCoreParser (manyTill tok eof) () ""
   where
-    tok      = choice [spaceTok,stringTok,charTok,typeDef,sym,number,syntax,unknown] <?> "token"
+    tok      = choice [spaceTok,stringTok,charTok,funDef,typeDef,sym,number,syntax,unknown] <?> "token"
     spaceTok = Spaces <$> many1 (oneOf " \n\t")
     number  = Number <$> many1 digit
+
+    funDef = FunDef <$> try (string "\\" >> spaces >> manyTill (try funParamAt <|> funParam) (string "->"))
+    funParamAt = do
+        s  <- string "(@" >> spaces >> symbol
+        string ")" >> spaces
+        return $ FunParamAt s
+    funParam = do
+        s  <- string "(" >> spaces >> symbol
+        ty <- spaces >> string "::" >> spaces >> typeSignature
+        string ")" >> spaces
+        return $ FunParam s ty
+
     sym     = keyOrIdent <$> (oneOf symFirstChars >>= \s -> many symb >>= \r -> return (s:r))
     symb = oneOf symChars
-    typeDef = TypeDef <$> try (string "::" >> spaces >> manyTill anyChar (lookAhead (oneOf ")=")))
+    typeDef = TypeDef <$> try (string "::" >> spaces >> typeSignature)
     symFirstChars = ['A'..'Z']++['a'..'z']
     symChars = ['A'..'Z']++['a'..'z']++['0'..'9']++"_'$/<=.#"
     stringTok = StringT <$> try (char '"' *> many (noneOf ['"']) <* char '"')
     charTok = CharT <$> try (char '\'' *> anyChar <* char '\'')
     unknown = Unknown . (:[]) <$> anyToken
     keyOrIdent s = fromMaybe (Symbol s) $ lookup s keywordTable
+
+    typeSignature = parseLevel (0 :: Int)
+      where parseLevel n
+                | n == 0    = do
+                    left <- many (noneOf "()=")
+                    rt   <- try ((:) <$> char '(' <*> parseLevel 1)
+                              <|> return ""
+                    return (left ++ rt)
+                | otherwise = do
+                    left <- many $ noneOf "()"
+                    rt   <- try ((:) <$> char '(' <*> parseLevel (n+1))
+                            <|> ((:) <$> char ')' <*> parseLevel (n-1))
+                    return (left ++ rt)
 
 data Signature = Signature
     { signatureQualifiers :: Maybe [String]
