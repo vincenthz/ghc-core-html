@@ -10,7 +10,7 @@ Maintainer:          Vincent Hanquez <vincent@snarc.org>
 Category:            Development
 Stability:           experimental
 Build-Type:          Simple
-Homepage:            http://github.com/vincenthz/ghc-core-html
+Homepage:            https://github.com/vincenthz/ghc-core-html
 Cabal-Version:       >=1.6
 data-files:
   README.md
@@ -36,4 +36,4 @@ Executable           ghc-core-html
 
 source-repository head
   type: git
-  location: git://github.com/vincenthz/ghc-core-html
+  location: https://github.com/vincenthz/ghc-core-html
