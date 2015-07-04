@@ -62,12 +62,19 @@ runGhc opts filename = do
             GhcOption s -> s : acc
             _           -> acc
 
+readDataFile :: FilePath -> IO String
+readDataFile = getDataFileName >=> readFile
+
 go :: [Flag] -> [String] -> IO ()
 go _ [] = error "no file specified"
 go opts (f:_) = do
-    -- Read CSS file
-    css <- readFile =<< getDataFileName "css/default.css"
-    js  <- readFile =<< getDataFileName "js/page.js"
+    -- Read CSS/JS files
+    let cssResources = [ "css/bootstrap.min.css", "css/default.css" ]
+        jsResources  = [ "js/bootstrap.min.js", "js/page.js" ]
+
+    css <- intercalate "\n" <$> mapM readDataFile cssResources
+    js  <- intercalate "\n" <$> mapM readDataFile jsResources
+
     -- read the core file, either directly if it's specified as a file, or
     -- by running ghc on the source file.
     result <-
