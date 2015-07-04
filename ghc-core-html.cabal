@@ -14,7 +14,9 @@ Homepage:            http://github.com/vincenthz/ghc-core-html
 Cabal-Version:       >=1.6
 data-files:
   README.md
+  css/bootstrap.min.css
   css/default.css
+  js/bootstrap.min.js
   js/page.js
 
 Executable           ghc-core-html
