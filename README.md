@@ -12,7 +12,7 @@ usage
 
 Typical usage:
 
-    ghc-core-web Program.hs > my-output.html
+    ghc-core-html Program.hs > my-output.html
 
 Just like ghc-core you have the following options:
 
